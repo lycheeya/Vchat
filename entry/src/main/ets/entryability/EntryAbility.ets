@@ -33,6 +33,7 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+
     });
   }
 

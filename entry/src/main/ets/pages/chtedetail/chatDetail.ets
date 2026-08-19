@@ -1,6 +1,7 @@
 import { router } from '@kit.ArkUI'
 import { vchat_ConnectUserKey } from '../../constant'
 import { UserInfo, UserInfomModel } from '../../models/user'
+import Bottominput from './components/bottominput'
 
 @Entry
 @Component
@@ -40,7 +41,12 @@ struct chatDetail {
 
       Text(JSON.stringify(this.talker))
 
+      Bottominput()
+
+
     }
+    .height('100%')
+    .justifyContent(FlexAlign.SpaceBetween)
     // .width('100%')
 
 

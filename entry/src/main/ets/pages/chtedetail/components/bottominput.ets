@@ -4,11 +4,15 @@ import { display, promptAction } from "@kit.ArkUI"
 @Component
 struct Bottominput {
 
+
+  @State jp_content:string = ''//键盘输入内容
   @State showMode:boolean = false
   @State Showvoice:boolean = false
   screenwidth:number = 0
   screenheight:number = 0
   @State Choosestate: 'delete' | 'text' | 'none' = 'none'
+
+  sendTextMessage:(content:string) => void = () => {}
 
   getwidthd() {
     return this.Choosestate == 'delete' ? 120 : 80;
@@ -142,10 +146,19 @@ struct Bottominput {
       }
       else
         {
-          TextInput()
+          TextInput({text: $$this.jp_content})
             .layoutWeight(1)
             .borderRadius(6)
             .backgroundColor(Color.White)
+            .onSubmit(() => {
+              // promptAction.showToast({message:'chufa'})
+              if(this.jp_content){
+                  //发送
+                this.sendTextMessage(this.jp_content)
+
+              }
+              this.jp_content = ''
+            })
 
         }
       Image($r('app.media.plus'))

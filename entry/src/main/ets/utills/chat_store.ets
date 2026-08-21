@@ -38,65 +38,62 @@ export class Vchatstore{
     return JSON.parse(store.getSync(vchat_ConnectUserKey,JSON.stringify(CurrentUser)) as string) as UserInfomModel
   }
 
+  //获取我和某个人的聊天记录的仓库
+  static getVchatMessageStore(userId:string){
+    return preferences.getPreferencesSync(getContext(),{
+      name:`${vchat_UserRecordKey}_${userId}`
+    })
+
+  }
+
   //获取我和某个人的整个聊天记录
   //Vchat_userrecordkey + userId => 所有的聊天记录
   static getVchatMessage(userId:string){
-    const store = Vchatstore.getvchatstore()
+    const store = Vchatstore.getVchatMessageStore(userId)//我和某个人的仓库
+    const allRecord = store.getAllSync() as object
+    const list = Object.values(allRecord).map((item:string) => JSON.parse(item) as MessageInfoModel)//乱序
+    list.sort((a:MessageInfoModel,b:MessageInfoModel) => a.sendTimer - b.sendTimer) // 按正序排列
+    return list
     //【错误】读取键名 vchat_UserRecordKey + userId 缺少下划线分隔符，与写入键名 `${vchat_UserRecordKey}_${userId}` 不一致，导致读取永远命中默认空数组
     //return JSON.parse(store.getSync(vchat_UserRecordKey + userId, '[]') as string) as MessageInfoModel[]
-    return JSON.parse(store.getSync(`${vchat_UserRecordKey}_${userId}`, '[]') as string) as MessageInfoModel[]
+    // return JSON.parse(store.getSync(`${vchat_UserRecordKey}_${userId}`, '[]') as string) as MessageInfoModel[]
   }
   //删除我和某人的整个聊天记录
   static async deletevchatMessage(userId:string){
-    const store = Vchatstore.getvchatstore()
-    store.deleteSync(`${vchat_UserRecordKey}_${userId}`)
-    await store.flush()
+    preferences.deletePreferences(getContext(),{
+      name:`${vchat_UserRecordKey}_${userId}`
+    })
   }
 
   //添加一条我和某人的聊天记录
   static async addone_vchatMessage(userId:string,message:MessageInfoModel){
-    const store = Vchatstore.getvchatstore()
-    const list = Vchatstore.getVchatMessage(userId)
-    list.push(message)
-    //写入list
-    store.putSync(`${vchat_UserRecordKey}_${userId}`,JSON.stringify(list))
-    await store.flush() //写入磁盘
+    const store = Vchatstore.getVchatMessageStore(userId)//我和某个人的仓库
+    store.putSync(message.id,JSON.stringify(message))//消息是用uuid构成的 每一个都是不同的
+    await store.flush()
   }
 
   //删除一条我和某人的聊天记录
   static async deleteone_vchatMessage(userId:string,messageId:string){
-    const store = Vchatstore.getvchatstore()
-    const list = Vchatstore.getVchatMessage(userId)
-    const index = list.findIndex(item => item.id == messageId)
-    list.splice(index,1)
-    //写入list
-    store.putSync(`${vchat_UserRecordKey}_${userId}`,JSON.stringify(list))
+    const store = Vchatstore.getVchatMessageStore(userId)
+    store.deleteSync(messageId)
     await store.flush() //写入磁盘
   }
 
-  //获取所有聊天记录的最后一条
+  //获取所有聊天记录的最后一条（每个会话取最后一条，按时间倒序返回）
   static getAlllastmessage(){
-    const store = Vchatstore.getvchatstore()
-    const arr:MessageInfoModel[] = []
-    const result = store.getAllSync() as object //坑点 小写的object才可以用【】括住
-    Object.keys(result).forEach(key => {
-      if(key.includes(vchat_UserRecordKey)){
-        if(result[key]) {
-          const list = JSON.parse(result[key]) as MessageInfoModel[]  //所有的聊天记录
-          if(list.length) {
-            arr.push(list[list.length - 1])
-
-          }
-        }
+    const users = Vchatstore.getvchatconnect() // 所有联系人
+    const list: MessageInfoModel[] = []
+    users.forEach(user => {
+      // 每个联系人的聊天记录存储在独立仓库里：${vchat_UserRecordKey}_${userId}
+      // 通过 getVchatMessage 获取该联系人的全部聊天记录（已按时间正序排列），取最后一条即最新消息
+      const vMesasag = Vchatstore.getVchatMessage(user.user_id)
+      if (vMesasag && vMesasag.length) {
+        list.push(vMesasag[vMesasag.length - 1])
       }
     })
-    AlertDialog.show({message:JSON.stringify(arr)})
-    arr.sort((a:MessageInfoModel,b:MessageInfoModel) => {
-      return b.sendTimer - a.sendTimer//使其进行降序排序
-    })//对原数组进行排序，没有产生新数组
-
-    return arr
+    list.sort((a: MessageInfoModel, b: MessageInfoModel) => b.sendTimer - a.sendTimer) // 倒序
+    return list
   }
 
 
-}
+}                             

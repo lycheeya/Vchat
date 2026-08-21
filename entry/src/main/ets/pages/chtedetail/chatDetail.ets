@@ -25,7 +25,6 @@ struct chatDetail {
     this.messageList = Vchatstore.getVchatMessage(this.talker.user_id)
     //【错误】scrollEdge 在 messageList 赋值后同步调用，但 ArkUI 渲染是异步的，List 尚未完成新数据布局，导致滚动到旧布局底部而非最新消息
     //this.scroller.scrollEdge(Edge.Bottom)
-    setTimeout(() => { this.scroller.scrollEdge(Edge.Bottom) }, 0)
   }
   getTalker(){
     this.talker = router.getParams() as UserInfomModel
@@ -148,6 +147,9 @@ struct chatDetail {
           )
         })
       }
+      .onAppear(() => {
+        this.scroller.scrollEdge(Edge.Bottom)
+      })
       .scrollBar(BarState.Off)
       .padding({top:4,bottom:2})
       .backgroundColor('#EBEDEF')

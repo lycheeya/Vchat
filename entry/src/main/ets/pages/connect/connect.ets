@@ -99,6 +99,7 @@ export struct Connect {
 
             })
           }
+          .scrollBar(BarState.Off)
           .divider({strokeWidth:2,
           color:'#EBEDEF'})
           .backgroundColor('#EBEDEF')

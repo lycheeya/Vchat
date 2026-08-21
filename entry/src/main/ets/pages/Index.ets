@@ -1,7 +1,10 @@
 import { tabbarclass } from '../models/tab'
+import { Vchatstore } from '../utills/chat_store'
 // 修复：./connect 解析到 pages/connect 目录（无 index.ets 兜底），
 // 应指向实际组件文件 ./connect/connect，且组件已改名为 Connect（大驼峰）
 import { Connect } from './connect/connect'
+import vchat from './vchat/vchat'
+
 @Entry
 @Component
 struct Index {
@@ -34,6 +37,8 @@ struct Index {
     }
   ]
 
+
+
   @Builder
   tabBar(index: number) {
     Column() {
@@ -58,6 +63,10 @@ struct Index {
           if(item.name == 'connect')
           {
             Connect()
+          }
+          else if(item.name == 'vchat')
+          {
+            vchat()
           }
           else {
             Text(item.title)

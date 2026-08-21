@@ -147,36 +147,8 @@ struct Bottominput {
         }
 
 
-        if(this.Choosestate == 'delete'){
-          Button('删除')
-          .width(this.getwidthd())
-          .height(35)
-          .borderRadius(6)
-          .backgroundColor('#007DFF')
-          .fontColor(Color.White)
-          .fontSize(16)
-          .onClick(()=>{
-            this.Choosestate = 'none'
-          })
-        }
 
-        if(this.Choosestate == 'text'){
-          Button('复制')
-          .width(this.getwidtht())
-          .height(35)
-          .borderRadius(6)
-          .backgroundColor('#007DFF')
-          .fontColor(Color.White)
-          .fontSize(16)
-          .onClick(()=>{
-            promptAction.showToast({
-              message: '复制成功'
-            });
-            this.Choosestate = 'none'
-          })
-        }
-
-        Image($r('app.media.plus'))
+        Image($r('app.media.plus_square'))
           .margin({left:10,right:10})
           .width(25)
           .aspectRatio(1)
@@ -197,51 +169,44 @@ struct Bottominput {
         {
           Row(){
             Column(){
-              Column()
+              Image($r('app.media.picture'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Blue)
-              Text('拍摄')
-                .fontSize(12)
-                .fontColor('#333')
-            }
-            .alignItems(HorizontalAlign.Start)
-
-            Column(){
-              Column()
-                .width(30)
-                .height(30)
-                .backgroundColor(Color.Green)
               Text('相册')
                 .fontSize(12)
                 .fontColor('#333')
             }
-            .onClick(()=>{
-              this.showMode = false
-            })
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
 
             Column(){
-              Column()
+              Image($r('app.media.camera'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Gray)
-              Text('文件')
+              Text('拍摄')
                 .fontSize(12)
                 .fontColor('#333')
             }
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
 
             Column(){
-              Column()
+              Image($r('app.media.videochat'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Red)
-              Text('红包')
+              Text('视频通话')
                 .fontSize(12)
                 .fontColor('#333')
             }
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
+
+            Column(){
+              Image($r('app.media.location'))
+                .width(30)
+                .height(30)
+              Text('位置')
+                .fontSize(12)
+                .fontColor('#333')
+            }
+            .alignItems(HorizontalAlign.Center)
 
           }
           .width('100%')
@@ -252,51 +217,47 @@ struct Bottominput {
 
           Row(){
             Column(){
-              Column()
+              Image($r('app.media.redbag'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Blue)
-              Text('拍摄')
+              Text('红包')
                 .fontSize(12)
                 .fontColor('#333')
             }
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
 
             Column(){
-              Column()
+              Image($r('app.media.gift'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Green)
-              Text('相册')
+              Text('礼物')
                 .fontSize(12)
                 .fontColor('#333')
             }
             .onClick(()=>{
               this.showMode = false
             })
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
 
             Column(){
-              Column()
+              Image($r('app.media.file'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Gray)
               Text('文件')
                 .fontSize(12)
                 .fontColor('#333')
             }
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
 
             Column(){
-              Column()
+              Image($r('app.media.songinput'))
                 .width(30)
                 .height(30)
-                .backgroundColor(Color.Red)
-              Text('红包')
+              Text('语音输入')
                 .fontSize(12)
                 .fontColor('#333')
             }
-            .alignItems(HorizontalAlign.Start)
+            .alignItems(HorizontalAlign.Center)
 
           }
           .width('100%')

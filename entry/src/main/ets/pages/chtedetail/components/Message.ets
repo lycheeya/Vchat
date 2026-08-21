@@ -17,13 +17,11 @@ struct Message {
   build() {
     Row()
     {
-      // 显示头像
       Image(this.currentMessage.sendUser?.user_picture)
         .width(40)
         .aspectRatio(1)
         .borderRadius(4)
         .objectFit(ImageFit.Cover)
-      
       Row()
       {
         Text(this.currentMessage.messageContent ?? '')
@@ -31,8 +29,6 @@ struct Message {
           .padding(10)
           .margin({left:10,right:10})
           .borderRadius(5)
-          .maxLines(10)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .justifyContent(this.isOwnMessage ? FlexAlign.End : FlexAlign.Start)
       .layoutWeight(6)

@@ -1,13 +1,50 @@
 import { MessageInfoModel } from "../../models/message"
 import { Vchatstore } from "../../utills/chat_store"
 import { router } from "@kit.ArkUI"
+import emitter from "@ohos.events.emitter"
+import { Record_Update_Eventname } from "../../constant"
 
 @Component
 struct vchat {
   @State list:MessageInfoModel[] = []
 
+  @Builder getcontextend(item:MessageInfoModel)
+  {
+    Row(){
+      Text('删除')
+        .fontSize(20)
+        .width(100)
+        .textAlign(TextAlign.Center)
+
+    }
+    .onClick(() => {
+      //删除内存
+      if(item.connectUser.user_id)
+      {
+        let index = this.list.findIndex(item => item.connectUser.user_id == item.connectUser.user_id)
+        if(index > -1){
+          this.list.splice(index,1)
+
+        }
+        Vchatstore.deletevchatMessage(item.connectUser.user_id)
+
+
+      }
+      //删除缓存
+
+    })
+    .height('100%')
+    .backgroundColor(Color.Red)
+
+  }
+
+
   aboutToAppear(): void {
     this.getAllrecord()
+    emitter.on(Record_Update_Eventname, async () => {
+      this.list = await Vchatstore.getAlllastmessage()
+
+    })
   }
 
   async getAllrecord(){
@@ -15,10 +52,10 @@ struct vchat {
   }
   //将时间转换为具体时间
   tranTime(timer:number){
-   const sendTime =  new Date(timer)
+    const sendTime =  new Date(timer)
     if(sendTime.getDate() == new Date().getDate())
     {//今天 显示时分
-       return sendTime.getHours().toString().padStart(2,"0") + ":" + sendTime.getMinutes().toString().padStart(2,"0")
+      return sendTime.getHours().toString().padStart(2,"0") + ":" + sendTime.getMinutes().toString().padStart(2,"0")
     }
     else {
       return (sendTime.getMonth() + 1).toString().padStart(2,"0") + "月" + sendTime.getDate().toString().padStart(2,"0") + "日"
@@ -55,15 +92,17 @@ struct vchat {
                   .fontSize(13)
                   .fontColor('#A3A3A3')
                   .alignSelf(ItemAlign.Start)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
 
               }
               .layoutWeight(1)
 
-                Text(this.tranTime(item.sendTimer))
-                  .fontSize(12)
-                  .fontColor('#A3A3A3')
-                  .margin({right:10})
-                  .alignSelf(ItemAlign.Start)
+              Text(this.tranTime(item.sendTimer))
+                .fontSize(12)
+                .fontColor('#A3A3A3')
+                .margin({right:10})
+                .alignSelf(ItemAlign.Start)
               // .padding(5)
             }
             .width('100%')
@@ -76,13 +115,20 @@ struct vchat {
               params:item.connectUser
             })
           })
+          .swipeAction({
+            end:{
+              builder:this.getcontextend(item)
+            }
+          })
 
         })
       }
+
       .divider({
         strokeWidth:2,
         color:'#A3A3A3'
       })
+
     }
     .backgroundColor('#EBEDEF')
     .width('100%')

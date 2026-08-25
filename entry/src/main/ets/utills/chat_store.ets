@@ -1,11 +1,12 @@
 //首选项的读取数据
 import { preferences } from '@kit.ArkData';
 
-import { vchat_storeKey, vchat_ConnectKey, vchat_ConnectUserKey } from '../constant';
+import { vchat_storeKey, vchat_ConnectKey, vchat_ConnectUserKey, Record_Update_Eventname } from '../constant';
 import { MessageInfoModel } from '../models/message';
 import { CurrentUser, DefaultuserList, UserInfo, UserInfomModel } from '../models/user';
 import { vchat_UserRecordKey } from '../constant/index';
 import json from '@ohos.util.json';
+import emitter from '@ohos.events.emitter';
 
 
 export class Vchatstore{
@@ -70,6 +71,7 @@ export class Vchatstore{
     const store = Vchatstore.getVchatMessageStore(userId)//我和某个人的仓库
     store.putSync(message.id,JSON.stringify(message))//消息是用uuid构成的 每一个都是不同的
     await store.flush()
+    emitter.emit(Record_Update_Eventname)
   }
 
   //删除一条我和某人的聊天记录
@@ -77,6 +79,8 @@ export class Vchatstore{
     const store = Vchatstore.getVchatMessageStore(userId)
     store.deleteSync(messageId)
     await store.flush() //写入磁盘
+    emitter.emit(Record_Update_Eventname)
+
   }
 
   //获取所有聊天记录的最后一条（每个会话取最后一条，按时间倒序返回）

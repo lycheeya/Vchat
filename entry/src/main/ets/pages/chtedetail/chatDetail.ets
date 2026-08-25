@@ -123,7 +123,12 @@ struct chatDetail {
           //}
           ListItem()
           {
-            Message({currentMessage:item})
+            Message({
+              currentMessage:item,
+              deleteMessage:(message:MessageInfoModel) => {
+                this.deleteMessage(message)
+              }
+            })
           }
           .gesture(
             LongPressGesture()

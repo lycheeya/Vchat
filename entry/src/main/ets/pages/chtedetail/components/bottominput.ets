@@ -13,7 +13,7 @@ struct Bottominput {
   @State Choosestate: 'delete' | 'text' | 'none' = 'none'
 
   sendTextMessage: (content: string) => void = (content: string) => {}
-
+  xcolor:ResourceStr = '#95ec69'
   getwidthd() {
     return this.Choosestate == 'delete' ? 120 : 80;
   }
@@ -34,30 +34,46 @@ struct Bottominput {
 
     Column()
     {
-      Row(){
-        Text('删')
-          .width(this.getwidthd())
-          .aspectRatio(1)
-          .borderRadius(this.getwidthd()/2)
-          .backgroundColor('#3fd969')
-          .textAlign(TextAlign.Center)
-          .fontColor(Color.White)
-          .rotate({angle:-15})
+      Stack({alignContent:Alignment.Bottom}){
+        Image($r('app.media.ic_public_output'))
+          .width('100%')
+          .height(120)
+          .fillColor(this.Choosestate == 'none' ? '#95ec69'  : '#9B9B9B'  )
+        Image($r('app.media.ic_public_recorder'))
+          .width(30)
+          .height(30)
+          .margin({bottom:50})
+          Row(){
+            Text('X')
+              .width(this.getwidthd())
+              .aspectRatio(1)
+              .borderRadius(this.getwidthd()/2)
+              .backgroundColor(this.Choosestate == 'delete' ? '#c94f4f' : '#9B9B9B')
+              .textAlign(TextAlign.Center)
+              .fontColor(Color.White)
+              .rotate({angle:-15})
 
-        Text('文')
-          .width(this.getwidtht())
-          .aspectRatio(1)
-          .borderRadius(this.getwidtht()/2)
-          .backgroundColor('#3fd969')
-          .textAlign(TextAlign.Center)
-          .fontColor(Color.White)
-          .rotate({angle:15})
+            Text('文')
+              .width(this.getwidtht())
+              .aspectRatio(1)
+              .borderRadius(this.getwidtht()/2)
+              .backgroundColor(this.Choosestate == 'text' ? '#95ec69'  : '#9B9B9B'   )
+              .textAlign(TextAlign.Center)
+              .fontColor(Color.White)
+              .rotate({angle:15})
+
+          }
+          // .height('100%')
+          .padding({left:40,right:40})
+          .justifyContent(FlexAlign.SpaceBetween)
+          .width('100%')
+          .margin({bottom:170})
+
 
       }
-      .height(1000)
-      .padding({left:40,right:40})
-      .justifyContent(FlexAlign.SpaceBetween)
-      .width('100%')
+      .height('100%')
+
+
     }
     .height('100%')
     .backgroundColor("rgba(0,0,0,0.3)")
@@ -133,10 +149,18 @@ struct Bottominput {
                      if(event.fingerList[0].globalX > this.screenwidth / 2)
                      {
                         this.Choosestate = 'text'  // 往右滑为"文"
+                       this.xcolor = '#95ec69'
+
                      }
-                     else this.Choosestate = 'delete'  // 往左滑为"删"
+                     else {
+                       this.xcolor = '#ea3322'
+                       this.Choosestate = 'delete'
+                     }  // 往左滑为"删"
                    }
-                   else this.Choosestate = 'none'
+                   else {
+                     this.xcolor = '#95ec69'
+                     this.Choosestate = 'none'
+                   }
                   })
                   .onActionEnd((event) => {
                     this.Choosestate = 'none'

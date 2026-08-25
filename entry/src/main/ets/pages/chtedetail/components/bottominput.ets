@@ -1,4 +1,6 @@
 import { display, promptAction } from "@kit.ArkUI"
+import { abilityAccessCtrl, bundleManager } from "@kit.AbilityKit"
+import common from "@ohos.app.ability.common"
 
 @Preview
 @Component
@@ -21,6 +23,34 @@ struct Bottominput {
     return this.Choosestate == 'text' ? 120 : 80;
   }
 
+  // ===== 新增：语音面板选中状态指示框（实心圆角矩形）=====
+  // 圆角矩形尺寸（vp），中间(none)和右侧(文)比左侧(X/删除)更大
+  getFrameW(): number {
+    if (this.Choosestate == 'delete') {
+      return 104
+    }
+    return 130
+  }
+  getFrameH(): number {
+    if (this.Choosestate == 'delete') {
+      return 52
+    }
+    return 64
+  }
+  getFrameR(): number {
+    return 12
+  }
+
+  // 计算指示圆角矩形的纵向位置：相对面板(Column)顶部
+  // 原理：Row 底部距面板底部 170vp，按钮在 Row 中垂直居中，
+  // 圆角矩形位于按钮顶部上方 (矩形高 + 50vp 间距) 处
+  getFrameY(buttonWidth: number): number {
+    const rowH = Math.max(this.getwidthd(), this.getwidtht())
+    const rowBottom = this.screenheight - 170   // Row 底部距离
+    const buttonTop = rowBottom - rowH + (rowH - buttonWidth) / 2
+    return buttonTop - (this.getFrameH() + 50)
+  }
+
   aboutToAppear():void{
     // 获取屏幕宽高（vp），用于语音上滑取消 / 左删右文手势判断
     const d = display.getDefaultDisplaySync()
@@ -28,6 +58,31 @@ struct Bottominput {
     this.screenheight = px2vp(d.height)
   }
 
+
+    checkpermission(){
+    const result = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
+
+    const manager = abilityAccessCtrl.createAtManager()//创建一个nabager
+    const statu = manager.checkAccessTokenSync( result.appInfo.accessTokenId,"ohos.permission.MICROPHONE")
+    if(statu == abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED){
+      // promptAction.showToast({message:"ok"})
+      this.Showvoice = true
+
+    } else{
+      // promptAction.showToast({message:"no ok"})
+      //此时无法录音
+      const context = getContext() as common.UIAbilityContext
+      context.startAbility({
+        bundleName:"com.huawei.hmos.settings",
+        abilityName:"com.huawei.hmos.settings.MainAbility",
+        uri:'application_info_entry',
+        parameters:{
+          pushParams:result.name
+        }
+      })
+
+    }
+  }
   @Builder
   getContent()
   {
@@ -72,6 +127,44 @@ struct Bottominput {
 
       }
       .height('100%')
+      // ===== 新增：语音面板选中状态指示圆角矩形（实心，绝对定位在对应按钮上方）=====
+      // 选中 X(删除) 时，在 X 上方显示实心红色圆角矩形
+      if (this.Choosestate == 'delete') {
+        Column()
+          .width(this.getFrameW())
+          .height(this.getFrameH())
+          .borderRadius(this.getFrameR())
+          .backgroundColor('#c94f4f')
+          .position({
+            x: 40 + this.getwidthd() / 2 - this.getFrameW() / 2,
+            y: this.getFrameY(this.getwidthd())
+          })
+      }
+      // 选中 文(文字) 时，在 文 上方显示实心绿色圆角矩形
+      if (this.Choosestate == 'text') {
+        Column()
+          .width(this.getFrameW())
+          .height(this.getFrameH())
+          .borderRadius(this.getFrameR())
+          .backgroundColor('#95ec69')
+          .position({
+            x: this.screenwidth - 40 - this.getwidtht() / 2 - this.getFrameW() / 2,
+            y: this.getFrameY(this.getwidtht())
+          })
+      }
+      // 选中 none(未滑动/中间区域) 时，在中间上方显示实心绿色圆角矩形
+      if (this.Choosestate == 'none') {
+        Column()
+          .width(this.getFrameW())
+          .height(this.getFrameH())
+          .borderRadius(this.getFrameR())
+          .backgroundColor('#95ec69')
+          .position({
+            x: this.screenwidth / 2 - this.getFrameW() / 2,
+            y: this.getFrameY(80)
+          })
+      }
+
 
 
     }
@@ -137,10 +230,13 @@ struct Bottominput {
               GestureGroup(GestureMode.Parallel,
                 LongPressGesture()
                   .onAction(() => {
-                    this.Showvoice = true
+                    this.checkpermission()
+                    // this.Showvoice = true
                   })
                   .onActionEnd(() => {
-                    this.Showvoice = false
+                    this.checkpermission()
+
+                    // this.Showvoice = false
                   }),
                 PanGesture()
                   .onActionUpdate((event) => {

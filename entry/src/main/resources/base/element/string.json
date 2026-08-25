@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "Vchat"
+    },
+    {
+      "name": "MICROPHONE_label",
+      "value": "用来录制声音"
     }
   ]
 }

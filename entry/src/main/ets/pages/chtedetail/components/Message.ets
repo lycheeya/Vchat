@@ -1,5 +1,5 @@
 import { vchat_ConnectUserKey } from "../../../constant"
-import { MessageInfo, MessageInfoModel } from "../../../models/message"
+import { MessageInfo, MessageInfoModel, MessageTypeEnum } from "../../../models/message"
 import { PopupItem } from "../../../models/popup"
 import { UserInfo, UserInfomModel } from "../../../models/user"
 
@@ -81,6 +81,50 @@ struct Message {
     })
   }
 
+  @Builder
+  getTextContent(){
+    Text(this.currentMessage.messageContent ?? '')
+      .backgroundColor(this.isOwnMessage ? '#9eea6a' : Color.White)
+      .padding(10)
+      .margin({left:10,right:10})
+      .borderRadius(5)
+      .height(40)
+  }
+  @Builder
+  getAudioContent(){
+    // 【修改原因】：让语音发送的聊天框的大小与文字聊天框的大小一致，并且宽度随语音时长变化
+    // 【原代码】：
+    // Row(){
+    //   Text(`${this.currentMessage.sourceDuration}'`)
+    //   Image($r('app.media.ic_public_recorder'))
+    //     .width(20)
+    //     .aspectRatio(1)
+    //     .rotate({
+    //       angle:this.isOwnMessage ? 180 : 0
+    //     })
+    // }
+    // .height()
+    // .backgroundColor('#9eea6a')
+    
+    // 【新代码】：使用与文字消息相同的样式，宽度根据语音时长动态变化（最短20，最长100）
+    Row(){
+      Text(`${this.currentMessage.sourceDuration}'`)
+      Image($r('app.media.ic_public_recorder'))
+        .width(20)
+        .height(20)
+        .rotate({
+          angle:this.isOwnMessage ? 180 : 0
+        })
+    }
+    .justifyContent(this.isOwnMessage ? FlexAlign.End : FlexAlign.Start)
+    .backgroundColor(this.isOwnMessage ? '#9eea6a' : Color.White)
+    .padding(10)
+    .margin({left:10,right:10})
+    .borderRadius(5)
+    .width(Math.min(Math.max(60 + this.currentMessage.sourceDuration * 6, 60), 200)) // 根据语音时长动态调整宽度，每秒增加3个单位，最小20，最大100
+    .height(40)
+    .direction(this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
+  }
   build() {
     Row()
     {
@@ -91,20 +135,23 @@ struct Message {
         .objectFit(ImageFit.Cover)
       Row()
       {
-        Text(this.currentMessage.messageContent ?? '')
-          .backgroundColor(this.isOwnMessage ? '#9eea6a' : Color.White)
-          .padding(10)
-          .margin({left:10,right:10})
-          .borderRadius(5)
-          .bindPopup(this.showPopup, {
-            builder:  this.getContent,
-            popupColor: Color.Black,
-            backgroundBlurStyle: BlurStyle.NONE,
-            onStateChange: (event) => {
-              // 当手指点了其他位置 关闭状态
-              this.showPopup = event.isVisible
-            }
-          })
+        Column(){
+          if(this.currentMessage.messageType == MessageTypeEnum.TEXT)
+            this.getTextContent()
+          else if(this.currentMessage.messageType == MessageTypeEnum.AUDIO)
+            this.getAudioContent()
+        }
+        .bindPopup(this.showPopup, {
+          builder:  this.getContent,
+          popupColor: Color.Black,
+          backgroundBlurStyle: BlurStyle.NONE,
+          onStateChange: (event) => {
+            // 当手指点了其他位置 关闭状态
+            this.showPopup = event.isVisible
+          }
+        })
+
+
       }
       .gesture(
         LongPressGesture()

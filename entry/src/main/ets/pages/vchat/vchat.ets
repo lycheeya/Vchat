@@ -21,7 +21,9 @@ struct vchat {
       //删除内存
       if(item.connectUser.user_id)
       {
-        let index = this.list.findIndex(item => item.connectUser.user_id == item.connectUser.user_id)
+        //【修复】原代码 findIndex 回调参数也叫 item，导致与自己比较恒为 true，永远删的是第一条
+        //现在比较的是列表中每条的 user_id 与左滑那条(item)的 user_id
+        let index = this.list.findIndex(listItem => listItem.connectUser.user_id == item.connectUser.user_id)
         if(index > -1){
           this.list.splice(index,1)
 

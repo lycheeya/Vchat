@@ -45,10 +45,16 @@ struct chatDetail {
     setTimeout(() => { this.scroller.scrollEdge(Edge.Bottom) }, 0)
     //发送消息到废弃物得到响应内容
     this.getResponseMessage(content)
-
-
-
   }
+  //发送y语音消息
+  sendAudioMessage(mess:MessageInfoModel){
+    this.messageList.push(mess)//追加消息
+    Vchatstore.addone_vchatMessage(this.talker.user_id,mess)
+    //【错误】push 后 List 尚未重新渲染，同步调用 scrollEdge 无法滚动到新增消息位置
+    //this.scroller.scrollEdge(Edge.Bottom)
+    setTimeout(() => { this.scroller.scrollEdge(Edge.Bottom) }, 0)
+  }
+
   //获取相应的消息
   async getResponseMessage(content:string){
     await new Promise<void>((resolve:Function) => {
@@ -164,6 +170,9 @@ struct chatDetail {
       Bottominput({
         sendTextMessage:(content:string) => {
           this.sendTextMessage(content)
+        },
+        sendAudioMessage:(mess:MessageInfoModel) =>{
+          this.sendAudioMessage(mess)
         }
       })
 

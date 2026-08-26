@@ -1,6 +1,13 @@
 import { display, promptAction } from "@kit.ArkUI"
 import { abilityAccessCtrl, bundleManager } from "@kit.AbilityKit"
 import common from "@ohos.app.ability.common"
+import { audio } from "@kit.AudioKit"
+import { AudioCapturer } from "../../../utills/audioRecord"
+import { FileCommon } from "../../../utills/fileOperate"
+import { ChatAudioFile } from "../../../utills/chatAudioFile"
+import { MessageInfo, MessageInfoModel, MessageTypeEnum } from "../../../models/message"
+import { UserInfo, UserInfomModel } from "../../../models/user"
+import { vchat_ConnectUserKey } from "../../../constant"
 
 @Preview
 @Component
@@ -10,12 +17,26 @@ struct Bottominput {
   @State showMode:boolean = false  // false为文字输入，true为功能面板
   @State voiceMode:boolean = false  // 语音模式
   @State Showvoice:boolean = false
+  @Consume('talker') talker: UserInfomModel = new UserInfomModel({} as UserInfo)
+  // currentuser 已经在下面声明过了，无需重复声明
+  //【修复】原 @Consume('currentuser') 无匹配的 @Provide('currentuser')——父组件 chatDetail 是用
+  //@StorageProp(vchat_ConnectUserKey) 提供 currentuser 的，@Consume 找不到提供者，导致这里一直是空对象，
+  //进而语音消息 sendUser 为空：isOwnMessage 判定失败(消息显示在对面)、sendUser.user_picture 为空(无头像)
+  //@Consume('currentuser') currentuser: UserInfomModel = new UserInfomModel({} as UserInfo)
+  @StorageProp(vchat_ConnectUserKey) currentuser: UserInfomModel = new UserInfomModel({} as UserInfo)
   screenwidth:number = 0
   screenheight:number = 0
   @State Choosestate: 'delete' | 'text' | 'none' = 'none'
 
-  sendTextMessage: (content: string) => void = (content: string) => {}
+  sendTextMessage: (content: string) => void = (content: string) => {}//发送文本
+  sendAudioMessage:(mess:MessageInfoModel) => void = () => {} //发送音频消息
   xcolor:ResourceStr = '#95ec69'
+  temppath:string = ''
+
+  duration:number = 0//音频的秒数
+  timer:number = -1//记录定时器的标志
+
+
   getwidthd() {
     return this.Choosestate == 'delete' ? 120 : 80;
   }
@@ -56,6 +77,14 @@ struct Bottominput {
     const d = display.getDefaultDisplaySync()
     this.screenwidth = px2vp(d.width)
     this.screenheight = px2vp(d.height)
+    AudioCapturer.init()//初始化采集器
+  }
+  aboutToDisappear(): void {
+    //新增：录音中不释放采集器，否则正在阻塞的 read() 会抛 system error；
+    //下次录音时 start() 里的状态检查会自动释放重建
+    if (!AudioCapturer.recording) {
+      AudioCapturer.release()
+    }
   }
 
 
@@ -67,6 +96,7 @@ struct Bottominput {
     if(statu == abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED){
       // promptAction.showToast({message:"ok"})
       this.Showvoice = true
+      this.begainrecord()//新增：权限通过后开始录音（创建 wav 文件 + 启动采集器）
 
     } else{
       // promptAction.showToast({message:"no ok"})
@@ -83,6 +113,20 @@ struct Bottominput {
 
     }
   }
+
+  //开始收集声音
+  begainrecord(){
+    // 使用聊天专用的音频文件存储，基于聊天双方ID生成唯一标识
+    const chatId = this.currentuser.user_id < this.talker.user_id 
+      ? `${this.currentuser.user_id}_${this.talker.user_id}`
+      : `${this.talker.user_id}_${this.currentuser.user_id}`;
+    
+    this.temppath = ChatAudioFile.createChatAudioFile(chatId);//创建聊天专用音频文件路径
+    AudioCapturer.start(this.temppath)//此时开始录音
+    this.begainRtime()
+  }
+
+
   @Builder
   getContent()
   {
@@ -172,6 +216,56 @@ struct Bottominput {
     .backgroundColor("rgba(0,0,0,0.3)")
   }
 
+  releaseFinger(){
+    this.Showvoice = false
+    AudioCapturer.stop()
+    if(this.Choosestate == 'delete'){
+      ChatAudioFile.deleteChatAudioFile(this.temppath) // 使用新的音频文件管理功能删除文件
+    }
+    else if(this.Choosestate == 'text'){
+
+    }
+    else if (this.Choosestate == 'none') {
+      if(this.duration < 1){
+        promptAction.showToast({message:'录制时间太短'})
+        ChatAudioFile.deleteChatAudioFile(this.temppath) // 使用新的音频文件管理功能删除文件
+        this.endtime()
+        this.duration = 0
+        this.temppath = ""
+        return
+      }
+      else this.sendaudio()
+    }
+    this.endtime()
+
+  }
+
+  begainRtime(){
+    this.timer  = setInterval(() => {
+      this.duration++
+    },1000)
+  }
+
+  endtime(){
+    clearInterval(this.timer)
+    // this.duration = 0
+  }
+
+  sendaudio(){
+    let mess = new MessageInfoModel({
+      sourceDuration:this.duration,
+      messageContent:`[语音】${this.duration}'`,
+      messageType:MessageTypeEnum.AUDIO,
+      connectUser:this.talker,
+      sendUser:this.currentuser,
+      sourceFilePath:this.temppath
+    } as MessageInfo)
+    promptAction.showToast({message:'time is ' + this.duration})
+    this.sendAudioMessage(mess)
+    this.duration = 0
+    this.temppath = ""
+  }
+
   build() {
     Column(){
       Divider()
@@ -234,7 +328,7 @@ struct Bottominput {
                     // this.Showvoice = true
                   })
                   .onActionEnd(() => {
-                    this.checkpermission()
+                    this.releaseFinger()
 
                     // this.Showvoice = false
                   }),

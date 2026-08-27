@@ -2,6 +2,8 @@ import { router } from '@kit.ArkUI'
 import { vchat_ConnectUserKey } from '../../constant'
 import { MessageInfo, MessageInfoModel } from '../../models/message'
 import { UserInfo, UserInfomModel } from '../../models/user'
+// 【2026-08-27 AudioRender 重构】导入保持不变，但 release() 调用处补了 await
+import { AudioRender } from '../../utills/audioRender'
 import { Vchatstore } from '../../utills/chat_store'
 import { getRequestMessage } from '../../utills/Request'
 import Bottominput from './components/bottominput'
@@ -20,7 +22,18 @@ struct chatDetail {
   aboutToAppear(): void {
     //获取和我对话的用户资料
     this.getTalker()
+    AudioRender.init()
   }
+  aboutToDisappear(): void {
+    this.releaseAudio()
+  }
+
+  async releaseAudio(){
+    await AudioRender.stop()
+    // 【2026-08-27 修复】release() 已改为 async 方法，补 await
+    await AudioRender.release()
+  }
+
   getallRecord(){
     this.messageList = Vchatstore.getVchatMessage(this.talker.user_id)
     //【错误】scrollEdge 在 messageList 赋值后同步调用，但 ArkUI 渲染是异步的，List 尚未完成新数据布局，导致滚动到旧布局底部而非最新消息

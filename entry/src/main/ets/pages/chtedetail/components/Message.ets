@@ -2,11 +2,15 @@ import { vchat_ConnectUserKey } from "../../../constant"
 import { MessageInfo, MessageInfoModel, MessageTypeEnum } from "../../../models/message"
 import { PopupItem } from "../../../models/popup"
 import { UserInfo, UserInfomModel } from "../../../models/user"
+// 【2026-08-27 新增导入】用于语音消息的播放控制
+import { AudioRender } from "../../../utills/audioRender"
+import { promptAction } from "@kit.ArkUI"
 
 @Preview
 @Component
 struct Message {
 
+  @State audiostate:AnimationStatus = AnimationStatus.Initial
   @StorageProp(vchat_ConnectUserKey)
   currentuser:UserInfomModel = new UserInfomModel({} as UserInfo)
 
@@ -20,6 +24,8 @@ struct Message {
 
   @State
   showPopup: boolean = false // 是否显示浮层
+  @State
+  isPlaying: boolean = false // 当前音频是否正在播放
   @State
   popupList: PopupItem[] = [{
     title: '听筒播放',
@@ -90,40 +96,115 @@ struct Message {
       .borderRadius(5)
       .height(40)
   }
+  /**
+   * 播放/停止语音消息
+   */
+  async playAudio(): Promise<void> {
+    if (!this.currentMessage.sourceFilePath) {
+      return;
+    }
+    if (this.isPlaying) {
+      // 正在播放则停止
+      await AudioRender.stop();
+      this.isPlaying = false;
+    } else {
+      // 停止其他正在播放的音频
+      await AudioRender.stop();
+      await AudioRender.init();
+      await AudioRender.start(this.currentMessage.sourceFilePath);
+      this.isPlaying = true;
+      // 轮询检查播放状态，播放结束后重置 UI
+      AudioRender.checkPlayEnd().then((ended: boolean) => {
+        if (ended) {
+          this.isPlaying = false;
+          this.audiostate = AnimationStatus.Stopped;
+
+        }
+      });
+    }
+  }
+
+  /**
+   * 【旧代码已废弃 — 2026-08-27】
+   * 原 getAudioContent 仅有 UI 展示，无可交互播放功能，播放状态无视觉反馈。
+   * 新代码：添加 onClick 触发播放、isPlaying 状态驱动背景/文字变色。
+   */
+  // @Builder
+  // getAudioContent(){
+  //   // 【修改原因】：让语音发送的聊天框的大小与文字聊天框的大小一致，并且宽度随语音时长变化
+  //   Row(){
+  //     Text(`${this.currentMessage.sourceDuration}'`)
+  //     Image($r('app.media.ic_public_recorder'))
+  //       .width(20)
+  //       .height(20)
+  //       .rotate({
+  //         angle:this.isOwnMessage ? 180 : 0
+  //       })
+  //   }
+  //   .justifyContent(this.isOwnMessage ? FlexAlign.End : FlexAlign.Start)
+  //   .backgroundColor(this.isOwnMessage ? '#9eea6a' : Color.White)
+  //   .padding(10)
+  //   .margin({left:10,right:10})
+  //   .borderRadius(5)
+  //   .width(Math.min(Math.max(60 + this.currentMessage.sourceDuration * 6, 60), 200))
+  //   .height(40)
+  //   .direction(this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
+  // }
+
   @Builder
   getAudioContent(){
-    // 【修改原因】：让语音发送的聊天框的大小与文字聊天框的大小一致，并且宽度随语音时长变化
-    // 【原代码】：
-    // Row(){
-    //   Text(`${this.currentMessage.sourceDuration}'`)
-    //   Image($r('app.media.ic_public_recorder'))
-    //     .width(20)
-    //     .aspectRatio(1)
-    //     .rotate({
-    //       angle:this.isOwnMessage ? 180 : 0
-    //     })
-    // }
-    // .height()
-    // .backgroundColor('#9eea6a')
-    
-    // 【新代码】：使用与文字消息相同的样式，宽度根据语音时长动态变化（最短20，最长100）
     Row(){
-      Text(`${this.currentMessage.sourceDuration}'`)
-      Image($r('app.media.ic_public_recorder'))
+      // Image($r('app.media.ic_public_recorder'))
+      //   .width(20)
+      //   .height(20)
+      //   .rotate({
+      //     angle:this.isOwnMessage ? 180 : 0
+      //   })
+      // 【废弃/错误】原代码 .state() 调用了两次（第2次覆盖第1次），且 .duration(1000) 被注释掉
+      // 导致动画周期为 0ms，瞬间播完，肉眼无帧切换效果
+      // ImageAnimator().images([
+      //     { src: $r('app.media.ic_public_voice3') },
+      //     { src: $r('app.media.ic_public_voice1') },
+      //     { src: $r('app.media.ic_public_voice2') },
+      //     { src: $r('app.media.ic_public_voice3') },
+      //   ])
+      //   .state(this.isPlaying ? AnimationStatus.Running : AnimationStatus.Initial)
+      //   // .duration(1000)
+      //   .state(this.audiostate)
+      //   .iterations(-1)
+      //   .width(20)
+      //   .height(20)
+      ImageAnimator().images([
+          { src: $r('app.media.ic_public_voice3') },
+          { src: $r('app.media.ic_public_voice1') },
+          { src: $r('app.media.ic_public_voice2') },
+          { src: $r('app.media.ic_public_voice3') },
+        ])
+        .state(this.audiostate)
+        // .duration(1000)
+        .iterations(-1)
         .width(20)
         .height(20)
         .rotate({
           angle:this.isOwnMessage ? 180 : 0
         })
+      Text(`${this.currentMessage.sourceDuration}"`)
+        .fontSize(14)
+        .fontColor(this.isPlaying ? '#007aff' : Color.Black)
     }
     .justifyContent(this.isOwnMessage ? FlexAlign.End : FlexAlign.Start)
-    .backgroundColor(this.isOwnMessage ? '#9eea6a' : Color.White)
+    .backgroundColor(this.isPlaying ? '#d0ebff' : (this.isOwnMessage ? '#9eea6a' : Color.White))
     .padding(10)
     .margin({left:10,right:10})
     .borderRadius(5)
-    .width(Math.min(Math.max(60 + this.currentMessage.sourceDuration * 6, 60), 200)) // 根据语音时长动态调整宽度，每秒增加3个单位，最小20，最大100
+    .width(Math.min(Math.max(60 + this.currentMessage.sourceDuration * 6, 60), 200))
     .height(40)
-    .direction(this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
+    .direction(!this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
+    .onClick(() => {
+      this.playAudio()
+      this.audiostate = AnimationStatus.Running
+      promptAction.showToast({message:'1'})
+    })
   }
   build() {
     Row()
@@ -163,6 +244,12 @@ struct Message {
     }
     .padding({left:20,right:20})
     .direction(this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
+  }
+
+  aboutToDisappear(): void {
+    if (this.isPlaying) {
+      AudioRender.stop();
+    }
   }
 }
 

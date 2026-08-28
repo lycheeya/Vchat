@@ -7,6 +7,7 @@ import { CurrentUser, DefaultuserList, UserInfo, UserInfomModel } from '../model
 import { vchat_UserRecordKey } from '../constant/index';
 import json from '@ohos.util.json';
 import emitter from '@ohos.events.emitter';
+import { FileCommon } from './fileOperate';
 
 
 export class Vchatstore{
@@ -61,6 +62,12 @@ export class Vchatstore{
   }
   //删除我和某人的整个聊天记录
   static async deletevchatMessage(userId:string){
+    const list = Vchatstore.getVchatMessage(userId)
+    list.forEach(item => {
+      if(item.sourceFilePath){
+          FileCommon.delFilePath(item.sourceFilePath)
+      }
+    })
     preferences.deletePreferences(getContext(),{
       name:`${vchat_UserRecordKey}_${userId}`
     })

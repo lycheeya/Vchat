@@ -4,6 +4,7 @@ import { MessageInfo, MessageInfoModel } from '../../models/message'
 import { UserInfo, UserInfomModel } from '../../models/user'
 // 【2026-08-27 AudioRender 重构】导入保持不变，但 release() 调用处补了 await
 import { AudioRender } from '../../utills/audioRender'
+import { AvPlayer } from '../../utills/avPlayer'
 import { Vchatstore } from '../../utills/chat_store'
 import { getRequestMessage } from '../../utills/Request'
 import Bottominput from './components/bottominput'
@@ -19,10 +20,12 @@ struct chatDetail {
   currentuser:UserInfomModel = new UserInfomModel({} as UserInfo)
   @Provide talker:UserInfomModel = new UserInfomModel({} as UserInfo)
   scroller:Scroller = new Scroller()
+  player:AvPlayer = new AvPlayer()
   aboutToAppear(): void {
     //获取和我对话的用户资料
     this.getTalker()
     AudioRender.init()
+    this.player.init()
   }
   aboutToDisappear(): void {
     this.releaseAudio()
@@ -52,6 +55,7 @@ struct chatDetail {
     } as MessageInfo)
 
     this.messageList.push(mess)//追加消息
+    this.player.play("send.wav")
     Vchatstore.addone_vchatMessage(this.talker.user_id,mess)
     //【错误】push 后 List 尚未重新渲染，同步调用 scrollEdge 无法滚动到新增消息位置
     //this.scroller.scrollEdge(Edge.Bottom)
@@ -66,6 +70,8 @@ struct chatDetail {
     //【错误】push 后 List 尚未重新渲染，同步调用 scrollEdge 无法滚动到新增消息位置
     //this.scroller.scrollEdge(Edge.Bottom)
     setTimeout(() => { this.scroller.scrollEdge(Edge.Bottom) }, 0)
+    this.player.play("send.wav")
+
   }
 
   //获取相应的消息

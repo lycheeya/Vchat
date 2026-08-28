@@ -107,20 +107,36 @@ struct Message {
       // 正在播放则停止
       await AudioRender.stop();
       this.isPlaying = false;
+      this.audiostate = AnimationStatus.Stopped;
     } else {
       // 停止其他正在播放的音频
       await AudioRender.stop();
       await AudioRender.init();
-      await AudioRender.start(this.currentMessage.sourceFilePath);
-      this.isPlaying = true;
-      // 轮询检查播放状态，播放结束后重置 UI
-      AudioRender.checkPlayEnd().then((ended: boolean) => {
-        if (ended) {
-          this.isPlaying = false;
-          this.audiostate = AnimationStatus.Stopped;
-
+      try {
+        await AudioRender.start(this.currentMessage.sourceFilePath);
+        // 检查是否真的开始播放了
+        if (AudioRender.renderIng) {
+          this.audiostate = AnimationStatus.Running;
+          promptAction.showToast({message:'1'});
+          this.isPlaying = true;
+          // 轮询检查播放状态，播放结束后重置 UI
+          AudioRender.checkPlayEnd().then((ended: boolean) => {
+            if (ended) {
+              this.isPlaying = false;
+              this.audiostate = AnimationStatus.Initial;
+              promptAction.showToast({message:'2'})
+            }
+          });
+        } else {
+          // 如果没有开始播放，也要重置状态
+          this.audiostate = AnimationStatus.Initial;
+          console.info('音频未能开始播放');
         }
-      });
+      } catch (error) {
+        console.error(`音频播放失败: ${error.message}`);
+        this.audiostate = AnimationStatus.Initial;
+        this.isPlaying = false;
+      }
     }
   }
 
@@ -202,8 +218,6 @@ struct Message {
     .direction(!this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
     .onClick(() => {
       this.playAudio()
-      this.audiostate = AnimationStatus.Running
-      promptAction.showToast({message:'1'})
     })
   }
   build() {

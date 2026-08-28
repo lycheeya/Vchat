@@ -18,13 +18,31 @@
         "name": "ohos.permission.INTERNET"
       },
       {
-        // 远程头像图片加载所需网络权限
+        // 音频录制权限
         "name": "ohos.permission.MICROPHONE",
         "reason": "$string:MICROPHONE_label",
         "usedScene":{
           "when": "always",
           "abilities": ["EntryAbility"],
 
+        }
+      },
+      {
+        // 音频播放和设置权限
+        "name": "ohos.permission.MODIFY_AUDIO_SETTINGS",
+        "reason": "$string:modify_audio_settings_reason",
+        "usedScene": {
+          "when": "always",
+          "abilities": ["EntryAbility"]
+        }
+      },
+      {
+        // 后台音频播放权限
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING",
+        "reason": "$string:keep_background_running_reason",
+        "usedScene": {
+          "when": "always",
+          "abilities": ["EntryAbility"]
         }
       }
     ],

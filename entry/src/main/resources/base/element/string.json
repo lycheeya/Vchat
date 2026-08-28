@@ -15,6 +15,14 @@
     {
       "name": "MICROPHONE_label",
       "value": "用来录制声音"
+    },
+    {
+      "name": "modify_audio_settings_reason",
+      "value": "用于调整音频设置和播放音频"
+    },
+    {
+      "name": "keep_background_running_reason",
+      "value": "用于后台音频播放"
     }
   ]
 }

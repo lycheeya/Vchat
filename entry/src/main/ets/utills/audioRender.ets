@@ -311,8 +311,8 @@ export class AudioRender {
   // 音频的释放和暂停
   static async stop () {
     if(AudioRender.renderModel && AudioRender.renderModel.state === audio.AudioState.STATE_RUNNING) {
-      AudioRender.renderIng = false
-      await AudioRender.renderModel.stop() // 通知方法
+      AudioRender.renderIng = false;
+      await AudioRender.renderModel.stop(); // 通知方法
 
     }
   }
@@ -322,14 +322,13 @@ export class AudioRender {
       // 先管一下状态
       // 如果你在播的情况下 还能播吗？
       // 什么情况下能播？ 暂停 停止 准备
-      let stateList:  audio.AudioState [] = [
-        audio.AudioState.STATE_PREPARED,
-        audio.AudioState.STATE_PAUSED,
-        audio.AudioState.STATE_STOPPED
-      ]
-      if(!stateList.includes(AudioRender.renderModel.state)) {
-        // 不包含的情况下 此时就不能播了
-        return
+      // 检查状态，确保可以从暂停/停止等状态恢复
+      const st = AudioRender.renderModel.state;
+      if (st !== audio.AudioState.STATE_PREPARED
+        && st !== audio.AudioState.STATE_PAUSED
+        && st !== audio.AudioState.STATE_STOPPED) {
+        // 不在允许的状态下，此时就不能播了
+        return;
       }
       // 此时可以播
       AudioRender.renderIng = true
@@ -352,6 +351,7 @@ export class AudioRender {
       const bufferSize = await AudioRender.renderModel.getBufferSize() // 获取缓冲区的长度
       let buf = new ArrayBuffer(bufferSize) // 创建一个缓冲区对象 长度是音频采集器长度的长度
       let totalSize = 0 // 总量值
+      let fileClosed = false; // 标记文件是否已关闭
       while (totalSize < stat.size - wavHeaderSize &&  AudioRender.renderIng) {
         fileIo.readSync(file.fd, buf, {
           offset: totalSize + wavHeaderSize, // 加 44 跳过 WAV 头
@@ -360,14 +360,19 @@ export class AudioRender {
         // 坑点- write是个异步方法  需要一段段的去播放 需要写入完这一段以后 再去写入下一段
         await AudioRender.renderModel.write(buf) // 往音频采集器写入缓冲区内容  播完再下一段
         if (AudioRender.renderModel!.state.valueOf() === audio.AudioState.STATE_RELEASED) { // 如果渲染器状态为released，关闭资源
-          fileIo.close(file);
+          fileIo.closeSync(file.fd);
+          fileClosed = true;
+          break; // 退出播放循环
         }
         // 此时要继续
         totalSize += bufferSize
       }
-      // 关闭文件
-      fileIo.closeSync(file.fd)
-      AudioRender.stop() // 关闭
+      // 关闭文件（仅在未关闭的情况下）
+      if (!fileClosed) {
+        fileIo.closeSync(file.fd)
+      }
+      // 播放完成，设置播放状态为非播放中
+      AudioRender.renderIng = false
       callback && callback()
       // 通知外部播放已结束
       AudioRender._playEndResolve && AudioRender._playEndResolve(true)

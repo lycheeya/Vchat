@@ -5,6 +5,7 @@ import { UserInfo, UserInfomModel } from "../../../models/user"
 // 【2026-08-27 新增导入】用于语音消息的播放控制
 import { AudioRender } from "../../../utills/audioRender"
 import { promptAction } from "@kit.ArkUI"
+import PreViewImage from "./preViewImage"
 
 @Preview
 @Component
@@ -51,6 +52,18 @@ struct Message {
       title: '提醒',
       icon: $r("app.media.ic_public_warin")
     }]
+  
+  @State
+  showPreview: boolean = false
+  
+  private previewDialogController: CustomDialogController = new CustomDialogController({
+    /* 【废弃/错误】原代码未添加 "file://" 前缀，导致 PreViewImage 无法加载本地文件，显示空白 */
+    // builder: PreViewImage({ url: this.currentMessage.sourceFilePath }),
+    builder: PreViewImage({ url: "file://" + this.currentMessage.sourceFilePath }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center,
+    maskColor: Color.Transparent
+  })
 
   // 用来显示弹层的内容
   @Builder
@@ -94,7 +107,7 @@ struct Message {
       .padding(10)
       .margin({left:10,right:10})
       .borderRadius(5)
-      .height(40)
+      // 高度跟随文字自动伸缩，不在固定成 40，否则文字少时框过大、文字多时被截断
   }
   /**
    * 播放/停止语音消息
@@ -220,6 +233,26 @@ struct Message {
       this.playAudio()
     })
   }
+  @Builder
+  getImageContent(){
+    Column(){
+      //沙箱目录想要显示必须加上文件协议
+      Image("file://" + this.currentMessage.sourceFilePath)
+        .width('100%')
+        .height(200)
+        .borderRadius(5)
+        .objectFit(ImageFit.Cover)
+        .autoResize(true)
+        .onClick(() => {
+          // 点击图片全屏查看
+          this.showPreviewDialog();
+        })
+    }
+    .width('40%')
+    // .height(200)
+    .margin({left:10,right:10})
+  }
+
   build() {
     Row()
     {
@@ -235,6 +268,9 @@ struct Message {
             this.getTextContent()
           else if(this.currentMessage.messageType == MessageTypeEnum.AUDIO)
             this.getAudioContent()
+          else if(this.currentMessage.messageType == MessageTypeEnum.IMAGE)
+            this.getImageContent()
+
         }
         .bindPopup(this.showPopup, {
           builder:  this.getContent,
@@ -256,8 +292,32 @@ struct Message {
       .justifyContent(this.isOwnMessage ? FlexAlign.End : FlexAlign.Start)
       .layoutWeight(6)
     }
+    .alignItems(VerticalAlign.Top)
     .padding({left:20,right:20})
     .direction(this.isOwnMessage ? Direction.Rtl : Direction.Ltr)
+  }
+  
+  showPreviewDialog() {
+    /* 【废弃/错误】原代码只设置了 showPreview 状态变量，未实际调用对话框的 open 方法
+       导致点击图片后无法弹出预览对话框 */
+    // if (this.previewDialogController) {
+    //   try {
+    //     this.showPreview = true;
+    //   } catch (error) {
+    //     console.error('Failed to show dialog:', error);
+    //   }
+    // }
+    
+    // 正确方式：调用 CustomDialogController 的 open() 方法弹出预览对话框
+    if (this.previewDialogController) {
+      this.previewDialogController.open();
+    }
+  }
+
+  aboutToAppear(): void {
+    if (this.currentMessage.messageType === MessageTypeEnum.IMAGE) {
+      // 对于图片消息，启用点击预览功能
+    }
   }
 
   aboutToDisappear(): void {

@@ -1,13 +1,16 @@
 import { display, promptAction } from "@kit.ArkUI"
 import { abilityAccessCtrl, bundleManager } from "@kit.AbilityKit"
 import common from "@ohos.app.ability.common"
-import { audio } from "@kit.AudioKit"
 import { AudioCapturer } from "../../../utills/audioRecord"
-import { FileCommon } from "../../../utills/fileOperate"
 import { ChatAudioFile } from "../../../utills/chatAudioFile"
 import { MessageInfo, MessageInfoModel, MessageTypeEnum } from "../../../models/message"
 import { UserInfo, UserInfomModel } from "../../../models/user"
 import { vchat_ConnectUserKey } from "../../../constant"
+import { fileIo, picker } from "@kit.CoreFileKit"
+import { util } from "@kit.ArkTS"
+import cameraPicker from '@ohos.multimedia.cameraPicker'
+import camera from '@ohos.multimedia.camera'
+
 
 @Preview
 @Component
@@ -28,14 +31,16 @@ struct Bottominput {
   screenheight:number = 0
   @State Choosestate: 'delete' | 'text' | 'none' = 'none'
 
-  sendTextMessage: (content: string) => void = (content: string) => {}//发送文本
+  sendTextMessage: (content: string) => void = () => {}//发送文本
   sendAudioMessage:(mess:MessageInfoModel) => void = () => {} //发送音频消息
+  sendImageMessage:(List:MessageInfoModel[]) => void = () => {} //发送图片消息
   xcolor:ResourceStr = '#95ec69'
   temppath:string = ''
 
   duration:number = 0//音频的秒数
   timer:number = -1//记录定时器的标志
 
+  TextIController:TextInputController = new TextInputController()
 
   getwidthd() {
     return this.Choosestate == 'delete' ? 120 : 80;
@@ -265,6 +270,59 @@ struct Bottominput {
     this.duration = 0
     this.temppath = ""
   }
+//发送照片
+  async sendphoto(){
+    const photo = new picker.PhotoViewPicker()
+    const result = await photo.select({
+      maxSelectNumber:9,
+      MIMEType:picker.PhotoViewMIMETypes.IMAGE_TYPE
+    })
+    let messList:MessageInfoModel[] = []
+    // AlertDialog.show({message:JSON.stringify(result.photoUris)})
+    result.photoUris.forEach(url => {
+      const file = fileIo.openSync(url,fileIo.OpenMode.READ_ONLY)
+      const newFileName = getContext().filesDir + '/' + util.generateRandomUUID() + '.jpg'
+      fileIo.copyFileSync(file.fd,newFileName)//将相册内容拷贝到杀向目录
+
+      const newMess = new MessageInfoModel({
+        connectUser:this.talker,
+        sendUser:this.currentuser,
+        sourceFilePath:newFileName,
+        messageType:MessageTypeEnum.IMAGE,
+        messageContent:"[图片]"
+      } as MessageInfo)
+      messList.push(newMess) // 添加到列表
+      fileIo.closeSync(file.fd)
+
+    })
+    //循环结束后发送消息
+    this.sendImageMessage(messList)
+    animateTo({duration:150},() => {
+      this.showMode = false
+    })
+  }
+
+  async openCamera(){
+    try {
+      // pick() 是异步的，必须 await，否则 result 只是个 Promise，JSON.stringify 只会得到 {}
+      const result = await cameraPicker.pick(getContext(),[
+        cameraPicker.PickerMediaType.PHOTO,
+        cameraPicker.PickerMediaType.VIDEO
+      ],{
+        cameraPosition:camera.CameraPosition.CAMERA_POSITION_BACK
+      })
+      // result.resultUri 是拍摄到的图片/视频 uri 列表
+      if (result && result.resultUri && result.resultUri.length > 0) {
+        AlertDialog.show({message:'拍摄成功: ' + JSON.stringify(result.resultUri)})
+      } else {
+        AlertDialog.show({message:'已取消拍摄' + JSON.stringify(result.resultUri)})
+      }
+    } catch (error) {
+      // 模拟器通常没有摄像头，pick() 会抛出异常走到这里
+      const msg = (error as Error)?.message || JSON.stringify(error)
+      AlertDialog.show({message:'拍摄失败，设备可能没有摄像头: ' + msg})
+    }
+  }
 
   build() {
     Column(){
@@ -284,7 +342,9 @@ struct Bottominput {
             this.voiceMode = !this.voiceMode;
             // 如果启用了语音模式，关闭功能面板
             if (this.voiceMode) {
-              this.showMode = false;
+              animateTo({duration:150},() => {
+                this.showMode = false;
+              })
             }
           })
 
@@ -292,7 +352,7 @@ struct Bottominput {
           if (!this.voiceMode) {
             // 文字输入状态
             Row(){
-              TextInput({ text:this.jp_content})
+              TextInput({ text:this.jp_content,controller:this.TextIController})
                 .width('100%')
                 .borderRadius(6)
                 .onChange((value:string)=>{
@@ -303,6 +363,11 @@ struct Bottominput {
                     this.sendTextMessage(this.jp_content)//触发父组件方法
                     this.jp_content = ''//清空输入内容
                   }
+                })
+                .onClick(() => {
+                  animateTo({duration:150},() => {
+                    this.showMode = false
+                  })
                 })
             }
             .layoutWeight(1)
@@ -367,7 +432,13 @@ struct Bottominput {
           .width(25)
           .aspectRatio(1)
           .onClick(()=>{
-            this.showMode = !this.showMode
+            animateTo({duration:150}, () => {
+              this.showMode = !this.showMode
+              if(this.showMode)
+              {
+                this.TextIController.stopEditing()
+              }
+            })
           })
 
       }
@@ -390,6 +461,9 @@ struct Bottominput {
                 .fontSize(12)
                 .fontColor('#333')
             }
+            .onClick(() => {
+              this.sendphoto()
+            })
             .alignItems(HorizontalAlign.Center)
 
             Column(){
@@ -400,6 +474,9 @@ struct Bottominput {
                 .fontSize(12)
                 .fontColor('#333')
             }
+            .onClick(() => {
+              this.openCamera()
+            })
             .alignItems(HorizontalAlign.Center)
 
             Column(){

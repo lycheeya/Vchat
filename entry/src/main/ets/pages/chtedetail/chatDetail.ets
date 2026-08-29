@@ -73,6 +73,16 @@ struct chatDetail {
     this.player.play("send.wav")
 
   }
+  //发送照片消息
+  sendImageMessage(List:MessageInfoModel[]){
+    this.messageList.push(...List)
+    setTimeout(() => { this.scroller.scrollEdge(Edge.Bottom) }, 0)
+    List.forEach(item => {
+      Vchatstore.addone_vchatMessage(this.talker.user_id,item)
+
+    })
+    this.player.play("send.wav")
+  }
 
   //获取相应的消息
   async getResponseMessage(content:string){
@@ -192,6 +202,9 @@ struct chatDetail {
         },
         sendAudioMessage:(mess:MessageInfoModel) =>{
           this.sendAudioMessage(mess)
+        },
+        sendImageMessage:(List:MessageInfoModel[]) => {
+          this.sendImageMessage(List)
         }
       })
 
